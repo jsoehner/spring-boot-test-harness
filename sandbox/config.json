@@ -1,0 +1,17 @@
+{
+  "boot-source": {
+    "kernel_image_path": "/usr/local/bin/kernel.img",
+    "boot_args": "root=/dev/vda1 console=ttyS0"
+  },
+  "machine-config": {
+    "mem_size_mib": 2048,
+    "vcpu_count": 2
+  },
+  "drives": [
+    {
+      "drive_id": "vda",
+      "path_on_host": "/usr/local/bin/rootfs.img",
+      "is_root_device": true
+    }
+  ]
+}
