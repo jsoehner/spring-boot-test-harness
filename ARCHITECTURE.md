@@ -19,6 +19,8 @@ The system follows a "Sandbox-as-a-Service" model. The host machine orchestrates
 - **Isolation Mechanism**: Firecracker was chosen over Docker/Kata for its significantly smaller footprint and faster startup times, which are critical for rapid CI/CD feedback loops.
 - **PQC Readiness**: The harness is designed to support applications using ML-KEM-768 for quantum-resilient key exchange, ensuring compatibility with future-proof security standards.
 - **State Management**: The `memory_system` uses an OKF (Knowledge Framework) and ChromaDB to capture and retrieve engineering lessons learned during the testing process.
+- **Race Condition Prevention**: Implemented `synchronized` state transitions in core services to prevent concurrent update anomalies.
+- **Input Validation Policy**: Enforced strict regex-based validation on all order-related endpoints to prevent malformed data injection.
 
 ## Data Flow
 1. **Initialization**: Orchestrator triggers `prepare_rootfs.sh` -> VM is started.
