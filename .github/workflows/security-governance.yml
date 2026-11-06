@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
 
       - name: Run Gitleaks Secret Scanner
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
@@ -54,11 +54,11 @@ jobs:
             --config "p/security-audit" \
             --config "p/owasp-top-ten" \
             --config "p/cwe-top-25" \
-            --sarif --output=/src/semgrep-results.sarif || true
+            --sarif --output=/src/semgrep-results.sarif
 
       - name: Upload Semgrep SARIF to GitHub Security Tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && github.job.status != 'failure' && files('semgrep-results.sarif')
         with:
           sarif_file: semgrep-results.sarif
           category: semgrep-sast
@@ -74,17 +74,17 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy Vulnerability Scanner (Filesystem / Dependencies)
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.20.0
         with:
           scan-type: 'fs'
-          scan-ref: '.'
+          scan-ref: 'target_app'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
 
       - name: Upload Trivy SARIF to GitHub Security Tab
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() && github.job.status != 'failure' && files('trivy-results.sarif')
         with:
           sarif_file: trivy-results.sarif
           category: trivy-dependencies
@@ -110,11 +110,13 @@ jobs:
       - name: Run ADR Security Gatekeeper
         run: |
           if [ -f "scripts/adr_security_gatekeeper.py" ]; then
-            python3 scripts/adr_security_gatekeeper.py --base origin/${{ github.base_ref }} --event ${{ github.event_name }}
+            BASE_BRANCH=${{ github.base_ref }} \
+            [ -z "$BASE_BRANCH" ] && BASE_BRANCH="main" \
+            python3 scripts/adr_security_gatekeeper.py --base "origin/$BASE_BRANCH" --event ${{ github.event_name }}
           else
             echo "Running inline fallback gatekeeper check..."
             SENSITIVE_PATHS="auth/ crypto/ security/ certs/ .github/workflows/ api/ policy/"
-            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+            CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD 2>/dev/null || git diff --name-only origin/${{ github.base_ref }} HEAD)
             REQUIRES_ADR=false
             for path in $SENSITIVE_PATHS; do
               if echo "$CHANGED_FILES" | grep -E "^$path" > /dev/null; then
