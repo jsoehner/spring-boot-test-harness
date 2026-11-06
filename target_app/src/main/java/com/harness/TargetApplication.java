@@ -3,15 +3,6 @@ package com.harness;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-
-package com.harness;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 
@@ -30,7 +21,7 @@ public class TargetApplication {
 @RequestMapping("/api/orders")
 class OrderController {
     private final WorkOrderService workOrderService = new WorkOrderService();
-    private static final String AUTH_TOKEN = "secure-secret-key"; // Simplified for demonstration
+    private static final String AUTH_TOKEN = "secure-secret-key";
 
     @PostMapping("/bill/{id}")
     public ResponseEntity<String> billOrder(
@@ -81,8 +72,6 @@ class OrderController {
 
 class WorkOrderService {
     private static final Logger logger = Logger.getLogger(WorkOrderService.class.getName());
-    
-    // Order data: ID -> {Status, OwnerId}
     private final Map<String, OrderData> orders = new ConcurrentHashMap<>();
 
     public WorkOrderService() {
