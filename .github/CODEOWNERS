@@ -1,0 +1,15 @@
+﻿# Security Governance CODEOWNERS
+# Require review from security champions on high-risk paths
+
+# Security and Cryptography
+/auth/              @security-team
+/crypto/            @security-team
+/security/          @security-team
+/certs/             @security-team
+
+# CI/CD Workflows & Policies
+/.github/workflows/ @platform-team @security-team
+/.github/CODEOWNERS @security-team
+
+# Architectural Decisions
+/docs/adr/          @architecture-board @security-team

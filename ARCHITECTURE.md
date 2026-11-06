@@ -33,6 +33,9 @@ The system follows a "Sandbox-as-a-Service" model. The host machine orchestrates
 - **Network Isolation**: The VM is isolated from the host network except for the specific ports exposed for testing.
 - **Zero-Persistence**: Each test run uses a fresh VM instance to prevent cross-test contamination.
 - **Least Privilege**: The application runs as a non-root user inside the VM.
+- **Security Governance**: Enforced via `security-governance.yml` and `pre-commit` hooks.
+- **Threat Model**: Formalized in `docs/adr/0001-security-threat-model.md`.
+- **Audit Results**: Detailed in `docs/security_audit_report.md`.
 
 ## Performance Characteristics
 - **Startup Time**: < 2 seconds for VM boot and app readiness.
