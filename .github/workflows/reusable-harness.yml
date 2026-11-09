@@ -13,6 +13,16 @@ on:
         required: false
         type: string
         default: ""
+      harness-repo:
+        description: "Harness repository (e.g. owner/repo). Defaults to jsoehner/spring-boot-test-harness."
+        required: false
+        type: string
+        default: "jsoehner/spring-boot-test-harness"
+      harness-ref:
+        description: "Branch or ref of the test harness. Defaults to master."
+        required: false
+        type: string
+        default: "master"
       build-command:
         description: "Shell command to build the target project"
         required: false
@@ -82,13 +92,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout Test Harness"
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
-          repository: ${{ github.repository }}
+          repository: ${{ inputs.harness-repo || 'jsoehner/spring-boot-test-harness' }}
+          ref: ${{ inputs.harness-ref || 'master' }}
           path: "harness_engine"
 
       - name: "Checkout Target Application"
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
         with:
           repository: ${{ inputs.target-repo != '' && inputs.target-repo || github.repository }}
           ref: ${{ inputs.target-ref != '' && inputs.target-ref || github.ref }}
@@ -102,7 +113,7 @@ jobs:
           cache: "maven"
 
       - name: "Set up Python 3.11"
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
