@@ -7,7 +7,9 @@ This project provides a high-fidelity security and logic testing environment for
 - **Firecracker VM Orchestration**: Automated lifecycle management of lightweight VMs.
 - **Security Scanning**: Automated checks for security headers, information leakage, and known vulnerabilities.
 - **Fuzzing**: Automated generation and injection of payloads to identify unhandled exceptions and crashes.
-- **Concurrency Testing**: Dedicated test suite to identify race conditions in core business logic.
+- **AI-Generated Abuse Case Battery**: Built-in adversarial test suite (`tests/test_ai_abuse_cases.py`) mapped to OWASP API Security Top 10 & CWE (negative/zero quantity manipulation, 128-bit integer overflow & hex type confusion, SQLi/XSS/SSTI/JNDI/traversal payloads, cache pollution DoS, HTTP parameter pollution, verb tampering, control-character & URI flooding, and error-path header persistence).
+- **Concurrency & Conservation Testing**: Single-unit, multi-unit, and 20-thread mixed legitimate/adversarial race condition suites (`tests/test_inventory_concurrency.py`, `tests/test_race_condition.py`).
+- **Multi-Project Test Syncing**: Sync the full AI abuse case and concurrency suite into any new or existing Spring Boot repository with `./scripts/sync_harness_tests.sh <target-repo>`.
 - **Knowledge Capture**: Integrated system for recording architectural decisions and bug fixes.
 
 ## Tech Stack
@@ -47,10 +49,18 @@ The test harness supports multiple operating systems through selectable and auto
    ./orchestrate_vm.sh --mode firecracker # Linux microVM execution
    ```
 
+## Syncing Tests to Any New or Existing Project
+To sync the AI-Generated Abuse Case and Concurrency test suite into another Spring Boot repository:
+```bash
+./scripts/sync_harness_tests.sh /path/to/your-spring-boot-repo
+```
+Even if a target project does not define custom tests, `run_harness.sh` automatically executes the built-in `tests/test_ai_abuse_cases.py` and `tests/test_inventory_concurrency.py` suites against the target service.
+
 ## Project Structure
 - `harness/`: Core testing tools (scanner, fuzzer, etc.).
 - `target_app/`: The Spring Boot application being tested.
-- `tests/`: Pytest-based test suites.
+- `tests/`: Pytest-based test suites (`test_app_health.py`, `test_ai_abuse_cases.py`, `test_inventory_concurrency.py`, `test_race_condition.py`).
+- `scripts/sync_harness_tests.sh`: Utility to sync harness test cases into external repositories.
 - `sandbox/`: Firecracker configuration and rootfs management.
 - `memory_system/`: Knowledge base for architectural decisions and bug fixes.
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run_harness.sh - Execute the full test harness
+# run_harness.sh - Execute the full test harness (Health, Security, Fuzzing, AI Abuse Cases & Concurrency)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,22 +46,33 @@ echo "--- Step 2: Security Scan ---"
 echo "--- Step 3: Fuzzing ---"
 "${PYTHON}" harness/fuzzer.py "${TARGET_URL}"
 
-# If internal test app is running, run default race condition test
+# Step 4: Execute Built-In & Synced AI Abuse Case + Concurrency Suites
 if [ -z "${CUSTOM_TESTS}" ]; then
-    echo "--- Step 4: Concurrency/Race Condition Tests ---"
-    "${PYTHON}" tests/test_race_condition.py "${TARGET_URL}"
+    echo "--- Step 4: Built-in AI Abuse Case & Concurrency Suite ---"
+    "${PYTHON}" -m pytest tests/test_ai_abuse_cases.py tests/test_inventory_concurrency.py
 else
-    echo "--- Step 4: Custom Target Repository Tests (${CUSTOM_TESTS}) ---"
+    echo "--- Step 4: Custom & Synced Target Repository Tests (${CUSTOM_TESTS}) ---"
     if [ -f "${CUSTOM_TESTS}" ]; then
+        # If the target passed a single legacy test file (not test_ai_abuse_cases.py),
+        # also execute the centralized AI abuse case suite from the harness.
+        if [[ "$(basename "${CUSTOM_TESTS}")" != "test_ai_abuse_cases.py" ]]; then
+            echo "[*] Running centralized AI Abuse Case Suite from Test Harness..."
+            "${PYTHON}" -m pytest tests/test_ai_abuse_cases.py
+        fi
         if [[ "${CUSTOM_TESTS}" == *.py ]]; then
             "${PYTHON}" "${CUSTOM_TESTS}" "${TARGET_URL}"
         else
             bash "${CUSTOM_TESTS}" "${TARGET_URL}"
         fi
     elif [ -d "${CUSTOM_TESTS}" ]; then
+        if [ ! -f "${CUSTOM_TESTS}/test_ai_abuse_cases.py" ]; then
+            echo "[*] Running centralized AI Abuse Case Suite from Test Harness..."
+            "${PYTHON}" -m pytest tests/test_ai_abuse_cases.py
+        fi
         "${PYTHON}" -m pytest "${CUSTOM_TESTS}"
     else
-        echo "Notice: Custom test path '${CUSTOM_TESTS}' not found, skipping custom tests."
+        echo "Notice: Custom test path '${CUSTOM_TESTS}' not found; running built-in harness suite..."
+        "${PYTHON}" -m pytest tests/test_ai_abuse_cases.py tests/test_inventory_concurrency.py
     fi
 fi
 
