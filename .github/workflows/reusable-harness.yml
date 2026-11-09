@@ -1,0 +1,167 @@
+name: "Reusable Spring Boot Test Harness"
+
+on:
+  workflow_call:
+    inputs:
+      target-repo:
+        description: "Target repository (e.g. owner/repo). Defaults to caller repository."
+        required: false
+        type: string
+        default: ""
+      target-ref:
+        description: "Branch, tag, or commit SHA to test. Defaults to caller ref."
+        required: false
+        type: string
+        default: ""
+      build-command:
+        description: "Shell command to build the target project"
+        required: false
+        type: string
+        default: "mvn clean package -DskipTests"
+      jar-path:
+        description: "Explicit path or glob pattern to locate the built JAR"
+        required: false
+        type: string
+        default: ""
+      health-endpoint:
+        description: "HTTP path for readiness check (e.g., /actuator/health, /healthz)"
+        required: false
+        type: string
+        default: "/actuator/health"
+      port:
+        description: "TCP port the target application runs on"
+        required: false
+        type: number
+        default: 8080
+      execution-mode:
+        description: "Execution mode: direct | mock | firecracker"
+        required: false
+        type: string
+        default: "direct"
+      custom-tests-path:
+        description: "Relative path in target repo for custom test suite or script"
+        required: false
+        type: string
+        default: ""
+      java-version:
+        description: "Java version required by the target app"
+        required: false
+        type: string
+        default: "17"
+
+  workflow_dispatch:
+    inputs:
+      target-repo:
+        description: "Target repository (e.g. owner/repo)"
+        required: true
+        type: string
+      target-ref:
+        description: "Target branch or tag"
+        required: false
+        type: string
+        default: "main"
+      build-command:
+        description: "Build command"
+        required: false
+        type: string
+        default: "mvn clean package -DskipTests"
+      health-endpoint:
+        description: "Health endpoint"
+        required: false
+        type: string
+        default: "/actuator/health"
+      port:
+        description: "Application port"
+        required: false
+        type: number
+        default: 8080
+
+jobs:
+  run-harness:
+    name: "Harness Audit (${{ inputs.execution-mode || 'direct' }})"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout Test Harness"
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository }}
+          path: "harness_engine"
+
+      - name: "Checkout Target Application"
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.target-repo != '' && inputs.target-repo || github.repository }}
+          ref: ${{ inputs.target-ref != '' && inputs.target-ref || github.ref }}
+          path: "target_project"
+
+      - name: "Set up Java ${{ inputs.java-version || '17' }}"
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: ${{ inputs.java-version || '17' }}
+          cache: "maven"
+
+      - name: "Set up Python 3.11"
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "harness_engine/requirements.txt"
+
+      - name: "Install Harness Dependencies"
+        run: |
+          cd harness_engine
+          python3 -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+          chmod +x *.sh
+
+      - name: "Build Target Application"
+        run: |
+          cd target_project
+          echo "Executing: ${{ inputs.build-command || 'mvn clean package -DskipTests' }}"
+          ${{ inputs.build-command || 'mvn clean package -DskipTests' }}
+
+      - name: "Resolve Built Application Artifact"
+        id: resolve-artifact
+        run: |
+          if [ -n "${{ inputs.jar-path }}" ] && [ -f "target_project/${{ inputs.jar-path }}" ]; then
+            RESOLVED_JAR="$(pwd)/target_project/${{ inputs.jar-path }}"
+          else
+            # Automatically find the packaged Spring Boot runnable jar
+            RESOLVED_JAR=$(find "$(pwd)/target_project" -type f -name "*.jar" ! -name "*original*" ! -name "*-sources.jar" ! -name "*-javadoc.jar" | head -n 1)
+          fi
+
+          if [ -z "$RESOLVED_JAR" ] || [ ! -f "$RESOLVED_JAR" ]; then
+            echo "::error::Could not find compiled runnable JAR in target_project."
+            exit 1
+          fi
+
+          echo "Found target runnable JAR: $RESOLVED_JAR"
+          echo "jar=$RESOLVED_JAR" >> $GITHUB_OUTPUT
+
+      - name: "Execute Test Harness Suite"
+        run: |
+          CUSTOM_ARG=""
+          if [ -n "${{ inputs.custom-tests-path }}" ]; then
+            CUSTOM_ARG="--custom-tests $(pwd)/target_project/${{ inputs.custom-tests-path }}"
+          fi
+
+          cd harness_engine
+          ./orchestrate_vm.sh \
+            --mode ${{ inputs.execution-mode || 'direct' }} \
+            --port ${{ inputs.port || 8080 }} \
+            --health-path "${{ inputs.health-endpoint || '/actuator/health' }}" \
+            --jar "${{ steps.resolve-artifact.outputs.jar }}" \
+            --skip-build \
+            $CUSTOM_ARG
+
+      - name: "Archive Test & Execution Logs"
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: harness-execution-logs
+          path: |
+            harness_engine/.app.log
+            harness_engine/.pytest_cache
+          retention-days: 7

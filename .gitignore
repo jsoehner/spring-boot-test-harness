@@ -1,0 +1,21 @@
+# Operating System
+.DS_Store
+Thumbs.db
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Maven build intermediates
+target_app/target/classes/
+target_app/target/test-classes/
+target_app/target/maven-status/
+target_app/target/surefire-reports/
+
+# Runtime and Harness Logs/PIDs
+.app.log
+.app_pid
+.vm_pid

@@ -37,6 +37,10 @@ class OrderController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: User ID required");
         }
 
+        if (!id.matches("\\d+")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: Invalid Order ID format. Must be numeric.");
+        }
+
         String result = workOrderService.billOrder(id, userId);
         
         if (result.startsWith("Error:")) {
@@ -58,6 +62,10 @@ class OrderController {
 
         if (userId == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: User ID required");
+        }
+
+        if (!id.matches("\\d+")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: Invalid Order ID format. Must be numeric.");
         }
 
         String result = workOrderService.shipOrder(id, userId);
