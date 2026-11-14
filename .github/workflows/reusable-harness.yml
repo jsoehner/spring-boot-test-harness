@@ -92,14 +92,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout Test Harness"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.harness-repo || 'jsoehner/spring-boot-test-harness' }}
           ref: ${{ inputs.harness-ref || 'master' }}
           path: "harness_engine"
 
       - name: "Checkout Target Application"
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.target-repo != '' && inputs.target-repo || github.repository }}
           ref: ${{ inputs.target-ref != '' && inputs.target-ref || github.ref }}
